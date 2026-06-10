@@ -1,0 +1,11 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local working notes
+plan/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
