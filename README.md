@@ -17,20 +17,22 @@ see [session_report.md](session_report.md). Central hypothesis: continuous searc
 finds a *flexible framework skeleton*; the last few edges require locking floating
 "hinge" angle families at exact algebraic angles ([HANDOFF_unit_distance.md](HANDOFF_unit_distance.md) §5.A.1).
 
-## Status (2026-06-10): all four working records TIED
+## Status (2026-06-10): the ENTIRE frontier 16 ≤ n ≤ 100 reproduced — 87/87
 
-| n | ours | record (Engel et al.) | iso classes found / known | config |
-|---|------|-----------------------|---------------------------|--------|
-| 30 | **93** | 93 | 2 / 2 | `data/udg30_93edges.csv` (+`_b`) |
-| 40 | **137** | 137 | 1 / 1 | `data/udg40_137edges.csv` |
-| 50 | **183** | 183 | 5 / 5 | `data/udg50_183edges.csv` |
-| 70 | **281** | 281 | 3 / 3 | `data/udg70_281edges.csv` (+`_b`,`_c`) |
+Every densest-known record (Engel et al., Table 2 / their 60M-graph DB) for
+**every n from 16 to 100** has been independently re-derived and exactly
+certified: 86/87 audit-clean, plus n=96 under the exact-certificate track
+(close-pair flag — see audit discipline below). Zero new records: every
+beyond-record hunt came up dry, consistent with Table 2 being ML-optimal on
+16–100. Class identity verified against the Engel DB (downloaded locally,
+1.32 GB): at every checked n our isomorphism classes are exactly theirs.
 
-Every config passes the float three-audit AND exact certification in ℚ(√3,√11)
-(integer Moser-lattice coordinates, `data/mlcoords/*.json`). Verified byproducts:
-n=42/143, n=51/188 (ties Table 2), n=71/286, n=72/291. Beyond-record hunts
-(94/138/184/282) all came up dry — consistent with Table 2 being ML-optimal at
-these n. Class identity vs the Engel FigShare DB is unchecked (WAF-gated download).
+Flagship configs in `data/` (n = 30, 40, 50, 64, 70, 90, 96, 98 + originals);
+the full per-n table is in [docs/sweep-2026-06-10.md](docs/sweep-2026-06-10.md);
+running log in [RESULTS.md](RESULTS.md). Notable reverse-engineered
+constructions: n=64 = flattened 6-cube (six unit generators); n=98 = (3-cube
+minus a corner) ⊕ 4-cube, a 7-generator {0,1}-sum; n=96 = densest-96-subset of
+the 103-point Galois trace ball |z|² + |σz|² ≤ 4.
 
 The hinge hypothesis was **confirmed and refined** along the way: the 132-edge
 skeleton has exactly one internal flex; new edges fire *along* the flex at
@@ -50,9 +52,10 @@ converts that into an automatic method — see
 - `scripts/` — campaign drivers (`run_search.py`, `audit_config.py`)
 - `RESULTS.md` — running log of audited results
 
-## Audit discipline
+## Audit discipline (dual-track, decision 2026-06-10)
 
-No edge count is reported unless it passes **all three**:
+**Float-search track** — no edge count from continuous/float search is reported
+unless it passes **all three**:
 1. hard minimum separation ≥ 0.2,
 2. K_{2,3}-freeness (two unit circles meet in ≤ 2 points),
 3. exact realizability: damped Gauss–Newton on all claimed edges, total residual
@@ -60,6 +63,14 @@ No edge count is reported unless it passes **all three**:
 
 Without these, tolerance-exploiting near-coincident clusters fake absurd counts
 (the prior session saw a bogus "400 edges" at n = 40).
+
+**Exact-certificate track** — a config with integer Moser-lattice coordinates
+whose edges are *exactly* unit and whose points are *exactly* distinct in
+ℚ(√3,√11) (`scripts/ml_coords.py` CERTIFIED) is a rigorous UDG regardless of its
+float min-sep; the tolerance exploit is impossible under the certificate. Such
+configs count as records with a **close-pair flag** when min-sep < 0.2. (Needed
+at n = 96, whose unique record class has four pairs at exact distance²
+(23−4√33)/3 ≈ 0.0851² — the literature counts it; so do we, flagged.)
 
 ## Run
 
