@@ -9,3 +9,6 @@ plan/
 __pycache__/
 *.pyc
 .venv/
+
+# run artifacts
+runs/
