@@ -17,11 +17,11 @@ see [session_report.md](session_report.md). Central hypothesis: continuous searc
 finds a *flexible framework skeleton*; the last few edges require locking floating
 "hinge" angle families at exact algebraic angles ([HANDOFF_unit_distance.md](HANDOFF_unit_distance.md) §5.A.1).
 
-## Status (2026-06-10): the ENTIRE frontier 16 ≤ n ≤ 100 reproduced — 87/87
+## Status (2026-06-10): the ENTIRE frontier 16 ≤ n ≤ 100 reproduced — all 85 values
 
-Every densest-known record (Engel et al., Table 2 / their 60M-graph DB) for
+Every densest-known record (Engel et al., Table 2 / their ~66M-graph DB) for
 **every n from 16 to 100** has been independently re-derived and exactly
-certified: 86/87 audit-clean, plus n=96 under the exact-certificate track
+certified: 84 of the 85 values audit-clean, plus n=96 under the exact-certificate track
 (close-pair flag — see audit discipline below). Zero new records: every
 beyond-record hunt came up dry, consistent with Table 2 being ML-optimal on
 16–100. Class identity verified against the Engel DB (downloaded locally,
