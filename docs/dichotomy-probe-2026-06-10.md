@@ -41,6 +41,12 @@ E_nt = sum of multiplicity² over bisector lines shared by ≥2 point pairs.
    others. Either outcome is informative — this is the next measurement when the
    n=30 chase lands.
 
+   **PREDICTION CONFIRMED (same day, after the n=30 record fell):** the two
+   record-tying 93-edge ML classes measure E_nt = 938 (classA) and 993 (classB)
+   vs 294 for the non-ML 91 — a 3.2–3.4× spike for +2 edges, exactly the pattern
+   of the other four transitions. All five locking transitions now show the
+   3–4× symmetry explosion. No low-E record-density config has appeared anywhere.
+
 Caveat: E_float is a bucketed approximation for relative comparison at equal n
 (documented in `udg/bisector.py`); cross-n comparisons here are qualitative only.
 Reproduce: the table script is inline in the session log; all configs in `data/`.
