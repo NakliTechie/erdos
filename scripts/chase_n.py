@@ -2,7 +2,11 @@
 """Generic per-n record-chase driver (the Batch-F frontier-sweep engine).
 
 Escalating attack ladder over exact Moser-lattice coordinates, stopping
-early the moment best >= target:
+early the moment an AUDIT-PASSING best >= target (a raw edge count that
+fails the float three-audit never stops a stage, never touches the stop
+file, and never backs a tied/exceeded verdict -- the n=71/72 band-B4
+regression: subset ties from t3xt3c1/t2xt4c1 closure ambients with an
+inherent 0.0851 < MIN_SEP pair):
 
   (a) subset:  candidate ambients near n (wheel49, Eisenstein x w3 patch
                cross-sums, their 1-step closures) + densest-n-subgraph ILS
@@ -73,6 +77,41 @@ NPZ = ROOT / "runs/engel_db/seen_graphs.npz"
 
 def log(msg: str) -> None:
     print(f"[chase_n] {msg}", flush=True)
+
+
+# ---------------------------------------------------------------------------
+# the audit gate: a raw edge count is not a claim (HANDOFF §3)
+# ---------------------------------------------------------------------------
+
+def audit_passes(pts) -> bool:
+    """Float three-audit (udg.audit) on exact lattice points.
+
+    The gate every raw target hit must clear before it may stop a stage,
+    touch the stop file, or back a tied/exceeded verdict. Subset configs
+    inherit the ambient's geometry, and closure ambients can contain point
+    pairs below MIN_SEP (n=71/72: 0.0851 in t3xt3c1/t2xt4c1)."""
+    cfg = MLConfig(
+        tuple(int(x) for x in p) for p in np.asarray(pts, dtype=np.int64)
+    )
+    return bool(audit(to_float(cfg)).passed)
+
+
+def ladder_done(global_best, target: int) -> bool:
+    """May the stage ladder stop early? Only on an audit-passing best
+    >= target; an audit-failing raw tie must keep the ladder running."""
+    if global_best is None:
+        return False
+    return bool(global_best[4] and global_best[0] >= target)
+
+
+def final_verdict(edges: int, target: int, info: dict) -> dict:
+    """tied/exceeded are CLAIMS: beyond the raw count they require the
+    float three-audit AND exact certification from the final claim info."""
+    valid = bool(info.get("audit_passed")) and bool(info.get("certified"))
+    return {
+        "tied": bool(valid and edges == target),
+        "exceeded": bool(valid and edges > target),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -150,12 +189,16 @@ def build_ambients(n: int, max_cross: int = 4) -> list[tuple[str, np.ndarray]]:
 
 def _subset_task(payload):
     """Restart ladder of short subset_ils runs (calibration: restart
-    diversity beats one long kick chain) within the wall-clock slice."""
+    diversity beats one long kick chain) within the wall-clock slice.
+
+    A raw target hit ends the ladder ONLY if it passes the float audit;
+    an audit-failing tie just re-loops on a fresh seed (subset_ils itself
+    early-stops on the raw count, so each bad tie costs one restart)."""
     (name, amb, k, target, seed, minutes, stop_path) = payload
     amb = np.asarray(amb, dtype=np.int64)
     stop = (lambda: Path(stop_path).exists()) if stop_path else (lambda: False)
     deadline = time.time() + minutes * 60
-    best_m, best_pts = -1, None
+    best_m, best_pts, best_ok = -1, None, False
     r = 0
     while time.time() < deadline and not stop():
         m, pts = subset_ils(
@@ -163,14 +206,16 @@ def _subset_task(payload):
             minutes=max(0.02, (deadline - time.time()) / 60.0),
             target=target, should_stop=stop,
         )
-        if m > best_m:
-            best_m, best_pts = m, pts
-        if best_m >= target:
+        ok = m >= target and audit_passes(pts)
+        # an audit-passing target hit outranks any raw count that fails it
+        if (ok, m) > (best_ok, best_m):
+            best_m, best_pts, best_ok = m, pts, ok
+        if best_ok:
             break
         r += 1
     if best_pts is None:  # stopped before the first restart finished
-        return name, -1, None
-    return name, best_m, [tuple(int(x) for x in row) for row in best_pts]
+        return name, -1, None, False
+    return name, best_m, [tuple(int(x) for x in row) for row in best_pts], best_ok
 
 
 def run_subset_stage(n, target, budget_s, processes, seed, stop_path, found):
@@ -182,7 +227,8 @@ def run_subset_stage(n, target, budget_s, processes, seed, stop_path, found):
     if not ambients:
         return None
     deadline = time.time() + budget_s
-    best = None
+    best = None  # (edges, pts, label); audit-passing target hits outrank raw counts
+    best_ok = False
     waves = [ambients[i : i + processes] for i in range(0, len(ambients), processes)]
     for w, wave in enumerate(waves):
         remaining = deadline - time.time()
@@ -197,16 +243,18 @@ def run_subset_stage(n, target, budget_s, processes, seed, stop_path, found):
         with ProcessPoolExecutor(max_workers=processes) as ex:
             futs = [ex.submit(_subset_task, p) for p in payloads]
             for fut in as_completed(futs):
-                name, m, pts = fut.result()
+                name, m, pts, ok = fut.result()
                 if pts is None:
                     continue
-                log(f"subset[{name}]: {m} edges")
+                log(f"subset[{name}]: {m} edges"
+                    + (" (target hit FAILS audit — not stopping)"
+                       if m >= target and not ok else ""))
                 record_found(found, m, pts)
-                if best is None or m > best[0]:
-                    best = (m, pts, f"subset:{name}")
-                if m >= target:
+                if best is None or (ok, m) > (best_ok, best[0]):
+                    best, best_ok = (m, pts, f"subset:{name}"), ok
+                if ok:
                     Path(stop_path).touch()
-        if best is not None and best[0] >= target:
+        if best_ok:
             break
     return best
 
@@ -235,7 +283,7 @@ def _beam_task(payload):
     deadline = time.time() + minutes * 60
     stop = (lambda: Path(stop_path).exists()) if stop_path else (lambda: False)
     layers = beam_run(rng, width, n, deadline=deadline, should_stop=stop)
-    best_c, best_P = -1, None
+    best_c, best_P, best_ok = -1, None, False
     for lv in sorted(layers, reverse=True):
         members = layers[lv]
         take = 20 if lv >= n - 1 else 3
@@ -246,23 +294,25 @@ def _beam_task(payload):
             if P is None:
                 continue
             P2, c = full_polish(P, pair_threshold=pair_threshold)
-            if c > best_c:
-                best_c, best_P = c, P2
-                if best_c >= target:
-                    break
-        if best_c >= target or stop():
+            ok = c >= target and audit_passes(P2)
+            if (ok, c) > (best_ok, best_c):
+                best_c, best_P, best_ok = c, P2, ok
+            if best_ok:
+                break
+        if best_ok or stop():
             break
     pts = (
         [tuple(int(x) for x in r) for r in best_P.tolist()]
         if best_P is not None
         else None
     )
-    return width, seed, best_c, pts
+    return width, seed, best_c, pts, best_ok
 
 
 def run_beam_stage(n, target, budget_s, processes, seed, stop_path, found):
     deadline = time.time() + budget_s
-    best = None
+    best = None  # (edges, pts, label); audit-passing target hits outrank raw counts
+    best_ok = False
     widths = [300, 700, 1500]
     for w, width in enumerate(widths):
         remaining = deadline - time.time()
@@ -277,15 +327,17 @@ def run_beam_stage(n, target, budget_s, processes, seed, stop_path, found):
         with ProcessPoolExecutor(max_workers=processes) as ex:
             futs = [ex.submit(_beam_task, p) for p in payloads]
             for fut in as_completed(futs):
-                wd, sd, c, pts = fut.result()
-                log(f"beam[w={wd} seed={sd}]: {c} edges")
+                wd, sd, c, pts, ok = fut.result()
+                log(f"beam[w={wd} seed={sd}]: {c} edges"
+                    + (" (target hit FAILS audit — not stopping)"
+                       if pts is not None and c >= target and not ok else ""))
                 if pts is not None:
                     record_found(found, c, pts)
-                    if best is None or c > best[0]:
-                        best = (c, pts, f"beam:w{wd}s{sd}")
-                    if c >= target:
+                    if best is None or (ok, c) > (best_ok, best[0]):
+                        best, best_ok = (c, pts, f"beam:w{wd}s{sd}"), ok
+                    if ok:
                         Path(stop_path).touch()
-        if best is not None and best[0] >= target:
+        if best_ok:
             break
     return best
 
@@ -295,24 +347,42 @@ def run_beam_stage(n, target, budget_s, processes, seed, stop_path, found):
 # ---------------------------------------------------------------------------
 
 def run_anneal_stage(n, target, budget_s, processes, seed, out, found):
-    starts = [pts for _e, pts in sorted(found.values(), key=lambda t: -t[0])[:10]]
-    if not starts:
-        starts = [greedy_add(list(tri_patch(1).points), k=n - 3)]
-    best_e, best_pts, hist = anneal_pool(
-        starts,
-        minutes=budget_s / 60.0,
-        procs=processes,
-        steps=min(80_000, max(20_000, 800 * n)),
-        t0=1.0,
-        t1=0.05,
-        reheats=2,
-        seed=seed + 31337,
-        out=str(Path(out) / "anneal"),
-        target=target,
-        log=lambda m: log(f"anneal: {m}"),
-    )
-    record_found(found, best_e, [tuple(p) for p in best_pts])
-    return (best_e, [tuple(p) for p in best_pts], "anneal")
+    """anneal_pool's own target stop is on the RAW count, and its pool is
+    seeded from `found` (which may hold an audit-failing raw tie — then it
+    returns instantly with zero generations run). So: first attempt with the
+    target enabled (cheap legit early stop), and if the hit fails the float
+    audit, re-loop once with target=None to actually anneal the remaining
+    budget instead of re-stopping on the same bad config."""
+    t_end = time.time() + budget_s
+    best = None  # (edges, pts, label); audit-passing target hits outrank raw counts
+    best_ok = False
+    for attempt in (0, 1):
+        starts = [pts for _e, pts in sorted(found.values(), key=lambda t: -t[0])[:10]]
+        if not starts:
+            starts = [greedy_add(list(tri_patch(1).points), k=n - 3)]
+        best_e, best_pts, hist = anneal_pool(
+            starts,
+            minutes=max(0.05, (t_end - time.time()) / 60.0),
+            procs=processes,
+            steps=min(80_000, max(20_000, 800 * n)),
+            t0=1.0,
+            t1=0.05,
+            reheats=2,
+            seed=seed + 31337 + attempt * 7919,
+            out=str(Path(out) / "anneal"),
+            target=target if attempt == 0 else None,
+            log=lambda m: log(f"anneal: {m}"),
+        )
+        pts = [tuple(p) for p in best_pts]
+        record_found(found, best_e, pts)
+        ok = best_e >= target and audit_passes(pts)
+        if best is None or (ok, best_e) > (best_ok, best[0]):
+            best, best_ok = (best_e, pts, "anneal"), ok
+        if ok or best_e < target or time.time() >= t_end - 5:
+            break
+        log(f"anneal: raw target hit {best_e} FAILS audit — "
+            "re-looping without the raw-count stop")
+    return best
 
 
 # ---------------------------------------------------------------------------
@@ -508,7 +578,7 @@ def main() -> int:
         "seed": args.seed, "budget_min": args.budget_min,
         "processes": args.processes, "stages": [],
     }
-    global_best = None  # (edges, pts_or_None, label, P_float_or_None)
+    global_best = None  # (edges, pts_or_None, label, P_float_or_None, audit_ok)
 
     def remaining() -> float:
         return budget_s - (time.time() - t_start)
@@ -518,7 +588,7 @@ def main() -> int:
         raise SystemExit(f"--stages must name some of {list(STAGE_WEIGHTS)}")
     summary["stages_requested"] = stages
     for si, stage in enumerate(stages):
-        if global_best is not None and global_best[0] >= target:
+        if ladder_done(global_best, target):
             break
         rem_weights = sum(STAGE_WEIGHTS[s] for s in stages[si:])
         slice_s = max(0.0, remaining()) * STAGE_WEIGHTS[stage] / rem_weights
@@ -557,26 +627,32 @@ def main() -> int:
             continue
         if stage == "polish":
             count, P_float, label = result
-            improved = global_best is None or count > global_best[0]
+            ok = True  # polish only ever returns audit-passing counts
+            improved = (global_best is None
+                        or (ok, count) > (global_best[4], global_best[0]))
             entry["best"] = count
             if improved:
                 info, coords = certify_and_save(out, n, label, P_float=P_float)
                 entry["claim"] = info
-                global_best = (count, coords, label, P_float)
+                global_best = (count, coords, label, P_float, ok)
         else:
             m, pts, label = result
-            improved = global_best is None or m > global_best[0]
+            ok = audit_passes(pts)
+            improved = (global_best is None
+                        or (ok, m) > (global_best[4], global_best[0]))
             entry["best"] = m
             entry["winner"] = label
             if improved:
                 info, _ = certify_and_save(out, n, label.replace(":", "_"), pts=pts)
                 entry["claim"] = info
-                global_best = (m, pts, label, None)
+                global_best = (m, pts, label, None, ok)
+        entry["audit_passed"] = ok
         entry["hit_target"] = bool(entry.get("best") is not None
-                                   and entry["best"] >= target)
+                                   and entry["best"] >= target and ok)
         summary["stages"].append(entry)
         log(f"stage {stage}: best {entry['best']} in {secs:.1f}s"
-            + (" (TARGET HIT)" if entry["hit_target"] else ""))
+            + (" (TARGET HIT)" if entry["hit_target"] else "")
+            + ("" if ok else " (FAILS AUDIT — not a claim)"))
 
     # ----- final claim -----------------------------------------------------
     if global_best is None:
@@ -585,7 +661,7 @@ def main() -> int:
         (out / "summary.json").write_text(json.dumps(summary, indent=1))
         return 1
 
-    best_edges, best_pts, best_label, best_float = global_best
+    best_edges, best_pts, best_label, best_float, _best_ok = global_best
     if best_pts is not None:
         final_info, final_coords = certify_and_save(
             out, n, "final", pts=best_pts
@@ -599,11 +675,10 @@ def main() -> int:
         "edges": best_edges,
         "stage": best_label,
         "target": target,
-        "tied": best_edges == target,
-        "exceeded": best_edges > target,
+        **final_verdict(best_edges, target, final_info),
     }
 
-    if best_edges > target:
+    if best_edges > target and final_info["audit_passed"]:
         print("=" * 72, flush=True)
         print(f"*** NEW RECORD CANDIDATE: n={n} edges={best_edges} > "
               f"target={target} (stage {best_label}) ***", flush=True)
@@ -626,8 +701,9 @@ def main() -> int:
     elapsed = time.time() - t_start
     summary["elapsed_seconds"] = round(elapsed, 1)
     (out / "summary.json").write_text(json.dumps(summary, indent=1))
-    log(f"DONE: best {best_edges} / target {target} in {elapsed:.0f}s "
-        f"-> {out / 'summary.json'}")
+    log(f"DONE: best {best_edges} / target {target} in {elapsed:.0f}s"
+        + ("" if final_info["audit_passed"] else " (FAILS AUDIT — no claim)")
+        + f" -> {out / 'summary.json'}")
     return 0
 
 

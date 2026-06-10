@@ -117,6 +117,8 @@ def subset_search(
     for _ in range(iters):
         ins = np.nonzero(S)[0]
         outs = np.nonzero(~S)[0]
+        if outs.size == 0 or ins.size == 0:
+            break  # k == N (or k == 0): subset is fixed, nothing to swap
         # delta[u_idx, v_idx] = degS[v] - degS[u] - adj[u, v]
         delta = degS[outs][None, :] - degS[ins][:, None] - A[np.ix_(ins, outs)]
         mx = int(delta.max())
