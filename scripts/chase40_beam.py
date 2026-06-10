@@ -68,13 +68,23 @@ def tkey(P: np.ndarray) -> bytes:
 
 def beam_run(rng: np.random.Generator, width: int, n_target: int,
              top_greedy: int = 8, top_random: int = 4,
-             bucket_frac: float = 0.34):
+             bucket_frac: float = 0.34,
+             deadline: float | None = None, should_stop=None):
     """One diverse beam run; returns dict level -> list[(edges, P)] for the
-    last two levels (n_target-1, n_target)."""
+    last two levels (n_target-1, n_target).
+
+    deadline (time.time() timestamp) / should_stop() abort between levels;
+    on abort the current beam front is dumped into the output so partial
+    runs still yield candidates."""
     P0 = np.zeros((1, 4), dtype=np.int64)
     beam: list[tuple[int, np.ndarray]] = [(0, P0)]
     out: dict[int, list[tuple[int, np.ndarray]]] = {}
     for level in range(2, n_target + 1):
+        if (deadline is not None and time.time() > deadline) or (
+            should_stop is not None and should_stop()
+        ):
+            out[level - 1] = sorted(beam, key=lambda t: -t[0])[:40]
+            break
         children: dict[bytes, tuple[int, np.ndarray]] = {}
         for e, P in beam:
             U = universe(P, 1)

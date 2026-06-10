@@ -83,6 +83,9 @@ __all__ = [
     "exact_edge_count",
     "degrees",
     "to_float",
+    "float_xy",
+    "unit_mask",
+    "canon",
     "save_csv",
     "minkowski",
     "unit_edge",
@@ -284,6 +287,16 @@ def _unit_mask(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
     return out
 
 
+def unit_mask(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+    """Public exact unit mask on raw (m,4) x (n,4) integer coordinate arrays.
+
+    Boolean (len(X), len(Y)): which cross pairs are exact unit edges. The
+    chunked scaled-integer fast path -- the shared primitive of the promoted
+    chase engines (udg.anneal, udg.subsetsearch, scripts/chase40lib.py).
+    """
+    return _unit_mask(np.asarray(X), np.asarray(Y))
+
+
 def _as_coeff_array(points: Sequence[Coeffs]) -> np.ndarray:
     """(n, 4) coordinate array; int64 when exact-safe, else object (big ints)."""
     if not points:
@@ -481,14 +494,14 @@ def degrees(cfg: MLConfig) -> np.ndarray:
 # Float export
 # ---------------------------------------------------------------------------
 
-def to_float(cfg: MLConfig) -> np.ndarray:
-    """(n, 2) float64 positions: x = (A + D*s33)/12, y = (B*s3 + C*s11)/12.
+def float_xy(arr: np.ndarray) -> np.ndarray:
+    """(m, 2) float64 positions of raw integer coordinate rows (m, 4).
 
-    A, B, C, D are the exact integer invariants of each point, so each
-    coordinate is a single rounding of an exact value (error ~1e-16 * |p|).
+    x = (A + D*s33)/12, y = (B*s3 + C*s11)/12 with A, B, C, D the exact
+    integer invariants of each point, so each coordinate is a single
+    rounding of an exact value (error ~1e-16 * |p|).
     """
-    pts = cfg.as_array()
-    A, B, C, D = _invariants(pts)
+    A, B, C, D = _invariants(np.asarray(arr))
     A = A.astype(float)
     B = B.astype(float)
     C = C.astype(float)
@@ -496,6 +509,11 @@ def to_float(cfg: MLConfig) -> np.ndarray:
     x = (A + D * _SQRT33) / 12.0
     y = (B * _SQRT3 + C * _SQRT11) / 12.0
     return np.column_stack([x, y])
+
+
+def to_float(cfg: MLConfig) -> np.ndarray:
+    """(n, 2) float64 positions of cfg.points (see float_xy)."""
+    return float_xy(cfg.as_array())
 
 
 def save_csv(cfg: MLConfig, path: str | os.PathLike) -> None:
@@ -514,6 +532,49 @@ def minkowski(a: MLConfig, b: MLConfig) -> MLConfig:
         for p in a.points
         for q in b.points
     )
+
+
+# ---------------------------------------------------------------------------
+# Canonical form under the 12-element ML point group x translation
+# (promoted from scripts/chase40lib.py -- THE one canonical implementation)
+# ---------------------------------------------------------------------------
+#
+# The 12 rigid motions of ML = 6 rotations (multiplication by w1^k;
+# w1^3 = -1) x optional reflection z -> w3 * conj(z) (verified module
+# automorphism: w3*conj(1)=w3, w3*conj(w1)=w3-w1w3, w3*conj(w3)=1,
+# w3*conj(w1w3)=1-w1), plus translations (subtract the lexicographically
+# smallest row). canon-equal <=> identical point set up to ML symmetry.
+
+
+def _rot_w1_arr(P: np.ndarray) -> np.ndarray:
+    """Multiplication by w1: (a,b,c,d) -> (-b, a+b, -d, c+d)."""
+    a, b, c, d = P[:, 0], P[:, 1], P[:, 2], P[:, 3]
+    return np.stack([-b, a + b, -d, c + d], axis=1)
+
+
+def _refl_w3_arr(P: np.ndarray) -> np.ndarray:
+    """z -> w3*conj(z): (a,b,c,d) -> (c+d, -d, a+b, -b)."""
+    a, b, c, d = P[:, 0], P[:, 1], P[:, 2], P[:, 3]
+    return np.stack([c + d, -d, a + b, -b], axis=1)
+
+
+def canon(P: np.ndarray) -> bytes:
+    """Canonical bytes key of an (n,4) integer point set under the 12 ML
+    motions + translation. Keys are only comparable to keys produced by
+    this same function (within and across processes of one version)."""
+    best = None
+    Q = np.asarray(P, dtype=np.int64)
+    for _ in range(6):
+        for X in (Q, _refl_w3_arr(Q)):
+            rows = sorted(map(tuple, X.tolist()))
+            base = rows[0]
+            key = np.array(
+                [[r[k] - base[k] for k in range(4)] for r in rows], dtype=np.int64
+            ).tobytes()
+            if best is None or key < best:
+                best = key
+        Q = _rot_w1_arr(Q)
+    return best
 
 
 # ---------------------------------------------------------------------------

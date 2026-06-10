@@ -127,38 +127,11 @@ def min_sep(P: np.ndarray) -> float:
 
 # ---------------------------------------------------------------------------
 # canonical form under the 12-element point group x translation
+# (THE implementation now lives in udg.mlgraph.canon; re-exported here for
+# the existing chase40_* / engel_* callers)
 # ---------------------------------------------------------------------------
 
-
-def _rot1(P: np.ndarray) -> np.ndarray:
-    """Multiplication by w1: (a,b,c,d) -> (-b, a+b, -d, c+d)."""
-    a, b, c, d = P[:, 0], P[:, 1], P[:, 2], P[:, 3]
-    return np.stack([-b, a + b, -d, c + d], axis=1)
-
-
-def _refl(P: np.ndarray) -> np.ndarray:
-    """z -> w3*conj(z): (a,b,c,d) -> (c+d, -d, a+b, -b)."""
-    a, b, c, d = P[:, 0], P[:, 1], P[:, 2], P[:, 3]
-    return np.stack([c + d, -d, a + b, -b], axis=1)
-
-
-def canon(P: np.ndarray) -> bytes:
-    """Canonical bytes key of the point set under the 12 motions + translation."""
-    best = None
-    Q = np.asarray(P, dtype=np.int64)
-    for _ in range(6):
-        for X in (Q, _refl(Q)):
-            rows = sorted(map(tuple, X.tolist()))
-            base = rows[0]
-            key = bytes(
-                np.array(
-                    [[r[k] - base[k] for k in range(4)] for r in rows], dtype=np.int16
-                ).tobytes()
-            )
-            if best is None or key < best:
-                best = key
-        Q = _rot1(Q)
-    return best
+from udg.mlgraph import canon  # noqa: E402, F401
 
 
 # ---------------------------------------------------------------------------
