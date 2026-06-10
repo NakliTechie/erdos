@@ -1,0 +1,11 @@
+{
+  "n": 32,
+  "n_edges": 101,
+  "min_sep": 0.2917975059648791,
+  "k23_violations": 0,
+  "gn_total_residual": 1.1463135028992828e-30,
+  "gn_edges_exact": 101,
+  "gn_max_move": 1.1123893155135927e-16,
+  "min_sep_after": 0.2917975059648791,
+  "passed": true
+}

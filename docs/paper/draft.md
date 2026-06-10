@@ -519,12 +519,13 @@ Documented dry hunts, with method and scale:
   certified 291 at n = 72, tying the table, was found separately as a
   byproduct); continued annealing melt waves.
 - **n = 30 (exact)**: branch-and-bound proof that the densest 30-point subset
-  of the 49-point wheel sum has exactly 92 edges (~1.76M nodes; the proof
-  script and log are committed — `scripts/bnb_n30_wheel49.py`,
-  `docs/forensics/n30-bnb-proof.log` — and the result was independently
-  re-implemented during review). The record 93 *requires* leaving the sum
-  (both record classes keep only 16 of their 30 points inside it), which the
-  closure ambient supplies.
+  of the 49-point wheel sum has exactly 92 edges. The committed proof
+  (`scripts/bnb_n30_wheel49.py`, log in `docs/forensics/n30-bnb-proof.log`)
+  explores ~6.7·10⁷ nodes in ~210 s with an admissible degree-based bound; an
+  independent review re-implementation with a tighter bound needed ~1.8M
+  nodes — the same theorem either way. The record 93 *requires* leaving the
+  sum (both record classes keep only 16 of their 30 points inside it), which
+  the closure ambient supplies.
 - **n = 96 (clean)**: exhaustive floor-respecting subsets of the trace ball max
   at 414; dedicated floor-respecting hunts at 416; audit-clean sweep best 417.
 

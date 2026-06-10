@@ -1,0 +1,206 @@
+{
+  "config": "/Users/chiragpatnaik/Code/erdos/data/frontier/n18/udg18_46edges.csv",
+  "n": 18,
+  "float_unit_edges": 46,
+  "certified": true,
+  "rotation_deg": 5.745206109017275e-15,
+  "max_angular_residual_rad": 3.1819273924420947e-16,
+  "lattice_id_matched": "7/7",
+  "families": [
+    {
+      "ml_dir_deg": 93.557,
+      "unit_vector": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "edges": 5,
+      "max_residual_rad": 2.308044461118455e-16
+    },
+    {
+      "ml_dir_deg": 153.557,
+      "unit_vector": [
+        0,
+        0,
+        1,
+        -1
+      ],
+      "edges": 8,
+      "max_residual_rad": 1.9276010653908812e-16
+    },
+    {
+      "ml_dir_deg": 33.557,
+      "unit_vector": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "edges": 8,
+      "max_residual_rad": 3.09729856160807e-16
+    },
+    {
+      "ml_dir_deg": 60.0,
+      "unit_vector": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "edges": 7,
+      "max_residual_rad": 3.1819273924420947e-16
+    },
+    {
+      "ml_dir_deg": 120.0,
+      "unit_vector": [
+        1,
+        -1,
+        0,
+        0
+      ],
+      "edges": 7,
+      "max_residual_rad": 1.3678511740709858e-16
+    },
+    {
+      "ml_dir_deg": 0.0,
+      "unit_vector": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "edges": 10,
+      "max_residual_rad": 1.0027276280804373e-16
+    },
+    {
+      "ml_dir_deg": 76.779,
+      "unit_vector": [
+        2,
+        -1,
+        -2,
+        1
+      ],
+      "edges": 1,
+      "max_residual_rad": 1.8664168612611218e-16
+    }
+  ],
+  "n_components": 1,
+  "coords": [
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      1
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      0,
+      -1,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      -1,
+      1
+    ],
+    [
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      1,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      0
+    ],
+    [
+      2,
+      0,
+      -1,
+      1
+    ],
+    [
+      2,
+      0,
+      0,
+      0
+    ],
+    [
+      2,
+      0,
+      0,
+      1
+    ],
+    [
+      2,
+      0,
+      1,
+      0
+    ]
+  ],
+  "cycle_failures": 0,
+  "cycle_failure_details": [],
+  "exact_unit_pairs": 46,
+  "distinct_ok": true,
+  "bonus_pairs": [],
+  "missing_pairs": [],
+  "embed_max_err": 4.965068306494546e-16
+}

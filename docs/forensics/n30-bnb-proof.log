@@ -1,0 +1,40 @@
+ambient: wheel49 = wheel6(w1) (+) wheel6(w3): 49 points, 180 exact edges
+warm start (subset_ils seed=0): 92 edges
+
+EXACT MAXIMUM over all C(49,30) subsets: 92 edges
+witness check: edge_count(witness) = 92
+witness subset (30 ML lattice points of the wheel sum):
+  (-1, 0, -1, 0)
+  (-1, 0, -1, 1)
+  (-1, 0, 0, 0)
+  (-1, 0, 0, 1)
+  (-1, 0, 1, 0)
+  (-1, 1, -1, 0)
+  (-1, 1, -1, 1)
+  (-1, 1, 0, 0)
+  (-1, 1, 0, 1)
+  (-1, 1, 1, 0)
+  (0, -1, -1, 0)
+  (0, -1, -1, 1)
+  (0, -1, 0, 0)
+  (0, -1, 0, 1)
+  (0, 0, -1, 0)
+  (0, 0, -1, 1)
+  (0, 0, 0, 0)
+  (0, 0, 0, 1)
+  (0, 1, -1, 0)
+  (0, 1, -1, 1)
+  (0, 1, 0, 0)
+  (0, 1, 0, 1)
+  (1, -1, -1, 0)
+  (1, -1, -1, 1)
+  (1, -1, 0, 0)
+  (1, -1, 0, 1)
+  (1, 0, -1, 0)
+  (1, 0, -1, 1)
+  (1, 0, 0, 0)
+  (1, 0, 0, 1)
+nodes explored: 66998373
+wall time: 210.23 s
+
+PROVED: the densest 30-vertex subset of the 49-point wheel sum has exactly 92 edges (Table 2 target at n=30 is 93; the n=30 record is not a wheel-sum subset).
