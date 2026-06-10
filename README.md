@@ -17,6 +17,29 @@ see [session_report.md](session_report.md). Central hypothesis: continuous searc
 finds a *flexible framework skeleton*; the last few edges require locking floating
 "hinge" angle families at exact algebraic angles ([HANDOFF_unit_distance.md](HANDOFF_unit_distance.md) §5.A.1).
 
+## Status (2026-06-10): all four working records TIED
+
+| n | ours | record (Engel et al.) | iso classes found / known | config |
+|---|------|-----------------------|---------------------------|--------|
+| 30 | **93** | 93 | 2 / 2 | `data/udg30_93edges.csv` (+`_b`) |
+| 40 | **137** | 137 | 1 / 1 | `data/udg40_137edges.csv` |
+| 50 | **183** | 183 | 5 / 5 | `data/udg50_183edges.csv` |
+| 70 | **281** | 281 | 3 / 3 | `data/udg70_281edges.csv` (+`_b`,`_c`) |
+
+Every config passes the float three-audit AND exact certification in ℚ(√3,√11)
+(integer Moser-lattice coordinates, `data/mlcoords/*.json`). Verified byproducts:
+n=42/143, n=51/188 (ties Table 2), n=71/286, n=72/291. Beyond-record hunts
+(94/138/184/282) all came up dry — consistent with Table 2 being ML-optimal at
+these n. Class identity vs the Engel FigShare DB is unchecked (WAF-gated download).
+
+The hinge hypothesis was **confirmed and refined** along the way: the 132-edge
+skeleton has exactly one internal flex; new edges fire *along* the flex at
+unit-coincidence angles, and "coincidence forcing" (GN-realizing degenerate
+near-miss clusters, [scripts/force_coincidences.py](scripts/force_coincidences.py))
+converts that into an automatic method — see
+[docs/hinge-REPORT-2026-06-10.md](docs/hinge-REPORT-2026-06-10.md) and
+[docs/dichotomy-probe-2026-06-10.md](docs/dichotomy-probe-2026-06-10.md).
+
 ## Layout
 
 - `HANDOFF_unit_distance.md` — the research program: state of the art, pitfalls, ranked directions
